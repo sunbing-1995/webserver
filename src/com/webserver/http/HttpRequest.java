@@ -5,7 +5,11 @@ import lombok.Data;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 @Data
@@ -40,6 +44,26 @@ public class HttpRequest {
      */
     private String protocol;
 
+    /**
+     * url中去除拼接参数的部分
+     */
+    private String requestUri;
+
+    /**
+     * url中拼接的参数
+     */
+    private String queryString;
+
+    /**
+     * url中参数列表 key：参数名 value:参数值
+     */
+    private  Map<String, String> parameters = new HashMap<>();
+
+    /**
+     * http协议中消息头的集合
+     */
+    private Map<String , String> headers = new HashMap<>();
+
     public HttpRequest(Socket socket) throws IOException {
         this.socket = socket;
         this.inputStream = socket.getInputStream();
@@ -51,9 +75,52 @@ public class HttpRequest {
          */
         try {
             parseRequestLine();
+            parseHeaders();
+            parseContent();
         } catch (EmptyRequestException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 解析HTTP消息正文
+     * 看Headers中是否含有Content-Length来判定是否含有消息正文
+     * Content-Type是告知消息正文是什么类型的
+     */
+    private void parseContent() {
+        logger.info("解析消息正文信息");
+        try {
+            if(headers.containsKey("Content-Length")) {
+                int length = Integer.parseInt(headers.get("Content-Length"));
+                byte[] data = new byte[length];
+                inputStream.read(data);
+                String type = headers.get("Content-Type");
+                if("application/x-www-form-urlencoded".equals(type)){
+                    String line = new String(data,"ISO8859-1");
+                    line = URLDecoder.decode(line , "UTF-8");
+                    parseParameters(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 解析HTTP消息头
+     */
+    private void parseHeaders() {
+        logger.info("开始解析消息头");
+        try{
+            String line = null;
+            while (!"".equals(line = readLine())) {
+                String[] data = line.split(":");
+                headers.put(data[0] , data[1]);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        logger.info("解析消息头完毕");
     }
 
     /**
@@ -80,11 +147,46 @@ public class HttpRequest {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        logger.info("解析请求行完毕");
     }
 
+    /**
+     * 解析url 如果是get方法url中可能有拼接参数
+     */
     private void parseURL() {
         logger.info("解析url");
+        if(url.indexOf("?") == -1){
+            requestUri = url;
+        } else {
+            String[] data = url.split("\\?");
+            requestUri = data[0];
+            if(data.length > 1){
+                queryString = data[1];
+                try {
+                    queryString = URLDecoder.decode(queryString,"UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                parseParameters(queryString);
+            }
+            logger.info("解析url完毕");
+        }
+    }
 
+    /**
+     * 解析参数：name=value&name=value&...
+     * @param queryString
+     */
+    private void parseParameters(String queryString) {
+        String[] data = queryString.split("&");
+        for (String para : data) {
+            String[] parameter = para.split("=");
+            if (parameter.length > 1){
+                parameters.put(parameter[0] , parameter[1]);
+            } else {
+                parameters.put(parameter[0] , null);
+            }
+        }
     }
 
     /**

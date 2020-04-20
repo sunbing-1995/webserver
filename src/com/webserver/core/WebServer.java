@@ -20,7 +20,7 @@ public class WebServer {
     private ServerSocket serverSocket;
 
     /**
-     * 线程池接口
+     * 线程池 接口
      */
     private ExecutorService executorService;
 
