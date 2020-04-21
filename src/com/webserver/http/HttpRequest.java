@@ -65,8 +65,6 @@ public class HttpRequest {
     private Map<String , String> headers = new HashMap<>();
 
     public HttpRequest(Socket socket) throws IOException {
-        this.socket = socket;
-        this.inputStream = socket.getInputStream();
         /**
          * 解析请求分为三部分
          * 1.解析请求行
@@ -74,6 +72,8 @@ public class HttpRequest {
          * 3.解析消息正文
          */
         try {
+            this.socket = socket;
+            this.inputStream = socket.getInputStream();
             parseRequestLine();
             parseHeaders();
             parseContent();
@@ -104,6 +104,7 @@ public class HttpRequest {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        logger.info("成功解析消息正文");
     }
 
     /**
