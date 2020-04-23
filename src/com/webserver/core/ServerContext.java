@@ -21,6 +21,9 @@ public class ServerContext {
 
     private static void initServletMapping() {
         try {
+            /**
+             * dom4j解析xml 获取路径与Servlet之间的对应关系
+             */
             SAXReader saxReader = new SAXReader();
             Document document = saxReader.read("./resource/servlet.xml");
             Element rootElement = document.getRootElement();

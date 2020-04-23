@@ -208,4 +208,8 @@ public class HttpRequest {
         }
         return stringBuffer.toString().trim();
     }
+
+    public String getParameter(String key) {
+        return parameters.get(key);
+    }
 }

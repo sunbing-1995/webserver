@@ -3,11 +3,15 @@ package com.webserver.core;
 import com.webserver.http.HttpRequest;
 import com.webserver.http.HttpRespone;
 import com.webserver.servlet.HttpServlet;
+import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 
 public class ClientHander implements Runnable {
+    static Logger logger = Logger.getLogger(ClientHander.class);
+
     private Socket socket;
 
     public ClientHander(Socket socket) {
@@ -33,11 +37,16 @@ public class ClientHander implements Runnable {
              * 通过路径获取对应的servlet
              */
             HttpServlet httpServlet = ServerContext.getServlet(path);
-
             if (httpServlet != null) {
                 httpServlet.service(httpRequest , httpRespone);
             } else {
-
+                File file = new File("./webapps"+path);
+                if (file.exists()) {
+                    logger.info("没有对应的Servlet,已找到对应资源"+path);
+                    httpRespone.setEntity(file);
+                } else {
+                    logger.info("该资源不存在");
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
